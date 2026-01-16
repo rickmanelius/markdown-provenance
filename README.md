@@ -116,6 +116,15 @@ On success, you'll receive:
 
 All transactions are logged to `~/.markdown-provenance/transactions.jsonl`
 
+## Deduplication
+
+Before uploading, Markdown Provenance checks if the exact content already exists on Arweave:
+
+1. **Local log check** (fast) - Searches your `~/.markdown-provenance/transactions.jsonl` for matching IPFS CID
+2. **Arweave GraphQL query** - Queries the Arweave network for transactions with the same `IPFS-CID` tag
+
+If the content already exists, you'll receive the existing transaction details without creating a duplicate upload. This saves costs and avoids redundant data on the permaweb.
+
 ## Tags Applied
 
 Each upload includes these metadata tags:

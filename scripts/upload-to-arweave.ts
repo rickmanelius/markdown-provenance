@@ -13,12 +13,110 @@ interface UploadResult {
   arweaveUrl: string;
   ipfsCid: string;
   fileSize: number;
+  alreadyExists: boolean;
+  source?: 'local' | 'arweave';
 }
 
 async function generateIPFSCID(content: string): Promise<string> {
   const bytes = new TextEncoder().encode(content);
   const hash = await sha256.digest(bytes);
   return CID.create(1, raw.code, hash).toString();
+}
+
+interface LogEntry {
+  timestamp: string;
+  file: string;
+  txId: string;
+  url: string;
+  cid: string;
+  size: number;
+}
+
+function checkLocalLog(ipfsCid: string): LogEntry | null {
+  const logFile = path.join(os.homedir(), '.markdown-provenance', 'transactions.jsonl');
+
+  if (!fs.existsSync(logFile)) {
+    return null;
+  }
+
+  const lines = fs.readFileSync(logFile, 'utf-8').trim().split('\n');
+
+  for (const line of lines) {
+    if (!line) continue;
+    try {
+      const entry: LogEntry = JSON.parse(line);
+      if (entry.cid === ipfsCid) {
+        return entry;
+      }
+    } catch {
+      // Skip malformed lines
+    }
+  }
+
+  return null;
+}
+
+interface ArweaveGraphQLResponse {
+  data: {
+    transactions: {
+      edges: Array<{
+        node: {
+          id: string;
+          tags: Array<{ name: string; value: string }>;
+        };
+      }>;
+    };
+  };
+}
+
+async function checkArweaveForCID(ipfsCid: string): Promise<{ txId: string } | null> {
+  const query = `
+    query {
+      transactions(
+        tags: [
+          { name: "IPFS-CID", values: ["${ipfsCid}"] }
+        ]
+        first: 1
+      ) {
+        edges {
+          node {
+            id
+            tags {
+              name
+              value
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch('https://arweave.net/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!response.ok) {
+      console.warn('Warning: Could not query Arweave GraphQL endpoint');
+      return null;
+    }
+
+    const result = await response.json() as ArweaveGraphQLResponse;
+    const edges = result.data?.transactions?.edges;
+
+    if (edges && edges.length > 0) {
+      return { txId: edges[0].node.id };
+    }
+
+    return null;
+  } catch (error) {
+    console.warn('Warning: Error querying Arweave:', (error as Error).message);
+    return null;
+  }
 }
 
 function getWallet(): any {
@@ -90,6 +188,41 @@ async function uploadMarkdown(filePath: string): Promise<UploadResult> {
   const ipfsCid = await generateIPFSCID(content);
   console.log(`IPFS CID: ${ipfsCid}`);
 
+  // Check if this content was already uploaded (local log first, then Arweave)
+  console.log('\nChecking for existing upload...');
+
+  // Check local log first (faster)
+  const localEntry = checkLocalLog(ipfsCid);
+  if (localEntry) {
+    console.log('Found existing upload in local log.');
+    return {
+      transactionId: localEntry.txId,
+      viewblockUrl: localEntry.url,
+      arweaveUrl: `https://arweave.net/${localEntry.txId}`,
+      ipfsCid: localEntry.cid,
+      fileSize: localEntry.size,
+      alreadyExists: true,
+      source: 'local',
+    };
+  }
+
+  // Check Arweave GraphQL
+  const arweaveEntry = await checkArweaveForCID(ipfsCid);
+  if (arweaveEntry) {
+    console.log('Found existing upload on Arweave.');
+    return {
+      transactionId: arweaveEntry.txId,
+      viewblockUrl: `https://viewblock.io/arweave/tx/${arweaveEntry.txId}`,
+      arweaveUrl: `https://arweave.net/${arweaveEntry.txId}`,
+      ipfsCid,
+      fileSize,
+      alreadyExists: true,
+      source: 'arweave',
+    };
+  }
+
+  console.log('No existing upload found. Proceeding with new upload...');
+
   // Get wallet
   const jwk = getWallet();
 
@@ -133,6 +266,7 @@ async function uploadMarkdown(filePath: string): Promise<UploadResult> {
     arweaveUrl: `https://arweave.net/${result.id}`,
     ipfsCid,
     fileSize,
+    alreadyExists: false,
   };
 
   // Log transaction
@@ -151,13 +285,19 @@ if (!filePath) {
 
 uploadMarkdown(filePath)
   .then((result) => {
-    console.log('\n✅ Upload successful!\n');
-    console.log(`Transaction ID: ${result.transactionId}`);
+    if (result.alreadyExists) {
+      const sourceMsg = result.source === 'local' ? 'local log' : 'Arweave network';
+      console.log(`\n✅ Content already exists on Arweave (found in ${sourceMsg})!\n`);
+      console.log('This exact content was previously uploaded. No new upload needed.');
+    } else {
+      console.log('\n✅ Upload successful!\n');
+      console.log(`Transaction logged to ~/.markdown-provenance/transactions.jsonl`);
+    }
+    console.log(`\nTransaction ID: ${result.transactionId}`);
     console.log(`View on ViewBlock: ${result.viewblockUrl}`);
     console.log(`Direct Arweave URL: ${result.arweaveUrl}`);
     console.log(`IPFS CID: ${result.ipfsCid}`);
     console.log(`File size: ${result.fileSize} bytes`);
-    console.log(`\nTransaction logged to ~/.markdown-provenance/transactions.jsonl`);
   })
   .catch((error) => {
     console.error('\n❌ Upload failed:\n');

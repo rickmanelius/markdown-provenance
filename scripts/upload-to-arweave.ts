@@ -163,7 +163,11 @@ function logTransaction(result: UploadResult, fileName: string): void {
   fs.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
 }
 
-async function uploadMarkdown(filePath: string): Promise<UploadResult> {
+interface UploadOptions {
+  authorOverride?: string;
+}
+
+async function uploadMarkdown(filePath: string, options: UploadOptions = {}): Promise<UploadResult> {
   // Resolve to absolute path
   const absolutePath = path.resolve(filePath);
 
@@ -239,8 +243,8 @@ async function uploadMarkdown(filePath: string): Promise<UploadResult> {
     { name: 'IPFS-CID', value: ipfsCid },
   ];
 
-  // Add author if provided
-  const author = process.env.MP_AUTHOR;
+  // Add author if provided (--author flag overrides MP_AUTHOR env var)
+  const author = options.authorOverride || process.env.MP_AUTHOR;
   if (author) {
     tags.push({ name: 'Author', value: author });
   }
@@ -275,15 +279,35 @@ async function uploadMarkdown(filePath: string): Promise<UploadResult> {
   return uploadResult;
 }
 
+// Parse command line arguments
+function parseArgs(): { filePath: string; author?: string } {
+  const args = process.argv.slice(2);
+  let filePath = '';
+  let author: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--author' && args[i + 1]) {
+      author = args[i + 1];
+      i++; // Skip the next arg since it's the author value
+    } else if (!args[i].startsWith('--')) {
+      filePath = args[i];
+    }
+  }
+
+  return { filePath, author };
+}
+
 // Main execution
-const filePath = process.argv[2];
+const { filePath, author: authorOverride } = parseArgs();
 if (!filePath) {
-  console.error('Usage: npm run upload <file-path>');
-  console.error('       npx tsx scripts/upload-to-arweave.ts <file-path>');
+  console.error('Usage: npm run upload <file-path> [--author "Author Name"]');
+  console.error('       npx tsx scripts/upload-to-arweave.ts <file-path> [--author "Author Name"]');
+  console.error('\nOptions:');
+  console.error('  --author    Override MP_AUTHOR environment variable');
   process.exit(1);
 }
 
-uploadMarkdown(filePath)
+uploadMarkdown(filePath, { authorOverride })
   .then((result) => {
     if (result.alreadyExists) {
       const sourceMsg = result.source === 'local' ? 'local log' : 'Arweave network';

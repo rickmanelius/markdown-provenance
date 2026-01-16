@@ -1,12 +1,16 @@
 ---
 description: Upload a markdown file to Arweave permanent storage
-argument-hint: <file-path>
+argument-hint: <file-path> [--author "Name"]
 allowed-tools: Bash(npm:*), Bash(npx:*), Bash(cd:*), Bash(echo:*), Read
 ---
 
 Upload the specified markdown file to Arweave permanent storage.
 
-**File to upload:** $ARGUMENTS
+**Arguments:** $ARGUMENTS
+
+## Options
+
+- `--author "Name"` - Override the MP_AUTHOR environment variable for this upload
 
 ## Process
 
@@ -19,7 +23,7 @@ Upload the specified markdown file to Arweave permanent storage.
 
 ```bash
 # Navigate to the plugin directory and run upload
-cd "${CLAUDE_PLUGIN_ROOT}" && npm run upload "$ARGUMENTS"
+cd "${CLAUDE_PLUGIN_ROOT}" && npm run upload $ARGUMENTS
 ```
 
 ## On Success

@@ -1,20 +1,20 @@
 ---
-name: arweave-markdown
-description: Internal skill for uploading markdown to Arweave. Invoked only via /arweave-markdown command.
+name: markdown-provenance
+description: Internal skill for uploading markdown to Arweave. Invoked only via /markdown-provenance command.
 ---
 
 <objective>
 Upload markdown content to Arweave's permanent, decentralized storage network with proper metadata tags. Returns a viewblock.io transaction URL and logs all uploads locally.
 
-SECURITY: This skill should ONLY be invoked via the explicit /arweave-markdown slash command, never automatically based on conversation context.
+SECURITY: This skill should ONLY be invoked via the explicit /markdown-provenance slash command, never automatically based on conversation context.
 </objective>
 
 <quick_start>
-1. Ensure ARWEAVE_WALLET_PATH environment variable points to wallet.json
+1. Ensure MP_WALLET_PATH environment variable points to wallet.json
 2. Run the upload script with the markdown file path
 
 ```bash
-cd /Users/rickmanelius/git/rickmanelius/arweave-markdown
+cd /Users/rickmanelius/git/rickmanelius/markdown-provenance
 npm run upload path/to/file.md
 ```
 </quick_start>
@@ -22,14 +22,14 @@ npm run upload path/to/file.md
 <process>
 ## Step 1: Confirm User Intent
 
-Before uploading, confirm the user explicitly requested this via /arweave-markdown command. Never auto-trigger based on conversation about Arweave or permanent storage.
+Before uploading, confirm the user explicitly requested this via /markdown-provenance command. Never auto-trigger based on conversation about Arweave or permanent storage.
 
 ## Step 2: Check Environment
 
-Verify ARWEAVE_WALLET_PATH is set:
+Verify MP_WALLET_PATH is set:
 
 ```bash
-echo $ARWEAVE_WALLET_PATH
+echo $MP_WALLET_PATH
 ```
 
 If not set, guide user through wallet setup:
@@ -39,8 +39,8 @@ If not set, guide user through wallet setup:
 npx -y arweave wallet generate > wallet.json
 
 # Set environment variable (add to ~/.zshrc or ~/.bashrc)
-export ARWEAVE_WALLET_PATH="/path/to/wallet.json"
-export ARWEAVE_AUTHOR="Your Name"  # Optional
+export MP_WALLET_PATH="/path/to/wallet.json"
+export MP_AUTHOR="Your Name"  # Optional
 ```
 
 ## Step 3: Upload File
@@ -48,7 +48,7 @@ export ARWEAVE_AUTHOR="Your Name"  # Optional
 Execute the upload script:
 
 ```bash
-cd /Users/rickmanelius/git/rickmanelius/arweave-markdown
+cd /Users/rickmanelius/git/rickmanelius/markdown-provenance
 npm run upload <file-path>
 ```
 
@@ -58,7 +58,7 @@ Share with user:
 - ViewBlock URL for the transaction
 - Direct Arweave URL
 - IPFS CID of the content
-- Confirmation that transaction was logged to ~/.arweave-markdown/transactions.jsonl
+- Confirmation that transaction was logged to ~/.markdown-provenance/transactions.jsonl
 </process>
 
 <tags_applied>
@@ -67,22 +67,22 @@ The following tags are automatically added to each upload:
 | Tag | Value |
 |-----|-------|
 | Content-Type | text/markdown |
-| App-Name | Arweave Markdown |
+| App-Name | Markdown Provenance |
 | App-Version | 0.0.1 |
 | Type | Attestation |
 | IPFS-CID | (calculated from content) |
-| Author | (from ARWEAVE_AUTHOR env var, if set) |
+| Author | (from MP_AUTHOR env var, if set) |
 </tags_applied>
 
 <success_criteria>
 - Transaction ID returned from Arweave
 - viewblock.io URL displayed to user
-- Transaction logged to ~/.arweave-markdown/transactions.jsonl
+- Transaction logged to ~/.markdown-provenance/transactions.jsonl
 - All required tags applied (App-Name, App-Version, Content-Type, Type, IPFS-CID)
 </success_criteria>
 
 <error_handling>
-If ARWEAVE_WALLET_PATH not set:
+If MP_WALLET_PATH not set:
 - Direct user to README.md wallet setup section
 - Provide quick setup commands shown above
 

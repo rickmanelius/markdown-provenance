@@ -1,7 +1,7 @@
 {
-  "name": "arweave-markdown",
+  "name": "markdown-provenance",
   "version": "0.0.1",
-  "description": "Claude Code slash command for uploading markdown files to Arweave permanent storage",
+  "description": "Claude Code slash command for uploading markdown files to Arweave for permanent provenance",
   "type": "module",
   "scripts": {
     "upload": "npx tsx scripts/upload-to-arweave.ts",

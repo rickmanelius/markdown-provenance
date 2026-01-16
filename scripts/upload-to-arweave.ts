@@ -22,14 +22,14 @@ async function generateIPFSCID(content: string): Promise<string> {
 }
 
 function getWallet(): any {
-  const walletPath = process.env.ARWEAVE_WALLET_PATH;
+  const walletPath = process.env.MP_WALLET_PATH;
   if (!walletPath) {
     throw new Error(
-      'ARWEAVE_WALLET_PATH environment variable not set.\n\n' +
+      'MP_WALLET_PATH environment variable not set.\n\n' +
       'To set up your Arweave wallet:\n' +
       '1. Generate a wallet: npx -y arweave wallet generate > wallet.json\n' +
       '2. Set the environment variable:\n' +
-      '   export ARWEAVE_WALLET_PATH="/path/to/wallet.json"\n' +
+      '   export MP_WALLET_PATH="/path/to/wallet.json"\n' +
       '3. Add to ~/.zshrc or ~/.bashrc for persistence'
     );
   }
@@ -46,7 +46,7 @@ function getWallet(): any {
 }
 
 function logTransaction(result: UploadResult, fileName: string): void {
-  const logDir = path.join(os.homedir(), '.arweave-markdown');
+  const logDir = path.join(os.homedir(), '.markdown-provenance');
   const logFile = path.join(logDir, 'transactions.jsonl');
 
   if (!fs.existsSync(logDir)) {
@@ -100,14 +100,14 @@ async function uploadMarkdown(filePath: string): Promise<UploadResult> {
   // Build tags
   const tags = [
     { name: 'Content-Type', value: 'text/markdown' },
-    { name: 'App-Name', value: 'Arweave Markdown' },
+    { name: 'App-Name', value: 'Markdown Provenance' },
     { name: 'App-Version', value: '0.0.1' },
     { name: 'Type', value: 'Attestation' },
     { name: 'IPFS-CID', value: ipfsCid },
   ];
 
   // Add author if provided
-  const author = process.env.ARWEAVE_AUTHOR;
+  const author = process.env.MP_AUTHOR;
   if (author) {
     tags.push({ name: 'Author', value: author });
   }
@@ -157,7 +157,7 @@ uploadMarkdown(filePath)
     console.log(`Direct Arweave URL: ${result.arweaveUrl}`);
     console.log(`IPFS CID: ${result.ipfsCid}`);
     console.log(`File size: ${result.fileSize} bytes`);
-    console.log(`\nTransaction logged to ~/.arweave-markdown/transactions.jsonl`);
+    console.log(`\nTransaction logged to ~/.markdown-provenance/transactions.jsonl`);
   })
   .catch((error) => {
     console.error('\n❌ Upload failed:\n');

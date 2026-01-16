@@ -1,6 +1,6 @@
-# Markdown Provenance (Arweave Markdown)
+# Markdown Provenance
 
-A Claude Code plugin that provides the `/arweave-markdown` slash command for uploading markdown files to Arweave permanent storage.
+A Claude Code plugin that provides the `/markdown-provenance` slash command for uploading markdown files to Arweave permanent storage.
 
 ## Tech Stack
 
@@ -30,19 +30,19 @@ npm run upload <file.md>       # Upload a markdown file
 ## Environment Variables
 
 Required:
-- `ARWEAVE_WALLET_PATH` - Path to Arweave wallet.json file
+- `MP_WALLET_PATH` - Path to Arweave wallet.json file
 
 Optional:
-- `ARWEAVE_AUTHOR` - Author name added as metadata tag
+- `MP_AUTHOR` - Author name added as metadata tag
 
 ## Key Implementation Details
 
 - Files under 100KB upload free via Turbo
 - Each upload generates an IPFS-compatible CID (CIDv1, SHA-256, raw codec)
-- Transactions logged to `~/.arweave-markdown/transactions.jsonl`
+- Transactions logged to `~/.markdown-provenance/transactions.jsonl`
 - Tags applied: Content-Type, App-Name, App-Version, Type, IPFS-CID, Author (if set)
 
 ## Security Notes
 
 - Never commit wallet.json to git
-- The slash command only triggers on explicit `/arweave-markdown` invocation, never automatically
+- The slash command only triggers on explicit `/markdown-provenance` invocation, never automatically
